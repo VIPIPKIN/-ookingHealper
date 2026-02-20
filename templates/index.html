@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>🍳 Домашняя кулинария | Калькулятор себестоимости</title>
+
+    <!-- HTMX для динамики -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- Google Fonts - современные шрифты -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a1e2b 0%, #2d3349 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Шапка */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: clamp(24px, 5vw, 36px);
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffd88f 0%, #ffb347 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #a0a0a0;
+            font-size: 14px;
+        }
+
+        /* Вкладки */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px;
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .tab-btn {
+            flex: 1;
+            min-width: max-content;
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            color: #a0a0a0;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tab-btn i {
+            font-size: 16px;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #ffb347 0%, #ff8c42 100%);
+            color: #1a1e2b;
+            box-shadow: 0 8px 20px rgba(255, 180, 71, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Карточки */
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffd88f;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title i {
+            color: #ffb347;
+        }
+
+        /* Ингредиенты */
+        .ingredient-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .ingredient-card:hover {
+            border-color: #ffb347;
+            transform: translateY(-2px);
+        }
+
+        .ingredient-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* Поля ввода */
+        input, select {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #ffb347;
+            background: rgba(255, 180, 71, 0.1);
+            box-shadow: 0 0 0 3px rgba(255, 180, 71, 0.2);
+        }
+
+        input::placeholder {
+            color: #666;
+        }
+
+        select option {
+            background: #2d3349;
+            color: #fff;
+        }
+
+        .cost-display {
+            background: linear-gradient(135deg, #ffb347 0%, #ff8c42 100%);
+            color: #1a1e2b;
+            font-weight: 600;
+            padding: 10px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        /* Кнопки */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 14px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ffb347 0%, #ff8c42 100%);
+            color: #1a1e2b;
+            box-shadow: 0 4px 15px rgba(255, 180, 71, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 180, 71, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffb347;
+            border: 1px solid rgba(255, 180, 71, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 180, 71, 0.1);
+            border-color: #ffb347;
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffb347;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-icon:hover {
+            background: rgba(255, 180, 71, 0.2);
+            border-color: #ffb347;
+        }
+
+        .btn-delete {
+            color: #ff6b6b;
+        }
+
+        .btn-delete:hover {
+            background: rgba(255, 107, 107, 0.2);
+            border-color: #ff6b6b;
+        }
+
+        .btn-add {
+            width: 100%;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px dashed rgba(255, 180, 71, 0.3);
+            color: #ffb347;
+            font-size: 16px;
+        }
+
+        .btn-add:hover {
+            border-color: #ffb347;
+            background: rgba(255, 180, 71, 0.05);
+        }
+
+        /* Итоговая стоимость */
+        .total-card {
+            background: linear-gradient(135deg, #ffb347 0%, #ff8c42 100%);
+            border: none;
+            color: #1a1e2b;
+        }
+
+        .total-card .card-title {
+            color: #1a1e2b;
+        }
+
+        .total-card .card-title i {
+            color: #1a1e2b;
+        }
+
+        .total-amount {
+            font-size: clamp(28px, 6vw, 42px);
+            font-weight: 700;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        /* Список рецептов */
+        .recipes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .recipe-item {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .recipe-item:hover {
+            border-color: #ffb347;
+            transform: translateY(-2px);
+        }
+
+        .recipe-name {
+            font-weight: 600;
+            color: #ffd88f;
+            margin-bottom: 8px;
+        }
+
+        .recipe-cost {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffb347;
+        }
+
+        .recipe-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            color: #a0a0a0;
+            font-size: 12px;
+        }
+
+        /* Список покупок */
+        .shopping-list {
+            list-style: none;
+        }
+
+        .shopping-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .shopping-item input[type="checkbox"] {
+            width: auto;
+            margin-right: 12px;
+        }
+
+        .shopping-item.checked {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+
+        /* Адаптация для телефонов */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .ingredient-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .tab-btn {
+                padding: 10px 12px;
+                font-size: 12px;
+            }
+
+            .tab-btn i {
+                font-size: 14px;
+            }
+
+            .card {
+                padding: 16px;
+            }
+
+            .ingredient-card {
+                padding: 12px;
+            }
+
+            .btn-icon {
+                width: 44px;
+                height: 44px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Шапка -->
+    <div class="header">
+        <h1><i class="fas fa-utensils"></i> Домашняя кулинария</h1>
+        <p>Рассчитывайте себестоимость блюд с умом</p>
+    </div>
+
+    <!-- Вкладки -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('calculator')">
+            <i class="fas fa-calculator"></i>
+            <span>Калькулятор</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('recipes')">
+            <i class="fas fa-book-open"></i>
+            <span>Мои рецепты</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('shopping')">
+            <i class="fas fa-shopping-cart"></i>
+            <span>Список покупок</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('stats')">
+            <i class="fas fa-chart-line"></i>
+            <span>Статистика</span>
+        </button>
+    </div>
+
+    <!-- Вкладка: Калькулятор -->
+    <div id="tab-calculator" class="tab-content active">
+        <!-- Карточка с ингредиентами -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-shopping-basket"></i>
+                Ингредиенты
+            </div>
+
+            <div id="ingredients-container">
+                <!-- Первый ингредиент -->
+                <div class="ingredient-card">
+                    <div class="ingredient-grid">
+                        <div style="grid-column: span 3;">
+                            <input type="text" name="name[]" placeholder="Название" value="Молоко">
+                        </div>
+                        <div style="grid-column: span 1;">
+                            <select name="unit[]">
+                                <option value="г">г</option>
+                                <option value="кг">кг</option>
+                                <option value="мл" selected>мл</option>
+                                <option value="л">л</option>
+                                <option value="шт">шт</option>
+                            </select>
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <input type="number" name="bought_quantity[]" placeholder="Купили" value="970">
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <input type="number" name="price[]" placeholder="Цена" value="140">
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <input type="number" name="used_quantity[]" placeholder="Исп." value="500">
+                        </div>
+                        <div style="grid-column: span 1;">
+                            <div class="cost-display">72.16 ₽</div>
+                        </div>
+                        <div style="grid-column: span 1; text-align: center;">
+                            <button class="btn btn-icon btn-delete" onclick="this.closest('.ingredient-card').remove(); updateTotal()">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="add-ingredient" class="btn btn-add">
+                <i class="fas fa-plus-circle"></i>
+                Добавить ингредиент
+            </button>
+        </div>
+
+        <!-- Итоговая стоимость -->
+        <div class="card total-card">
+            <div class="card-title">
+                <i class="fas fa-ruble-sign"></i>
+                Себестоимость блюда
+            </div>
+            <div class="total-amount" id="total-cost">72.16 ₽</div>
+        </div>
+
+        <!-- Сохранение рецепта -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-save"></i>
+                Сохранить рецепт
+            </div>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <input type="text" id="recipe-name" placeholder="Название блюда" style="flex: 1; min-width: 200px;">
+                <button class="btn btn-primary" onclick="saveRecipe()">
+                    <i class="fas fa-check"></i>
+                    Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Вкладка: Мои рецепты -->
+    <div id="tab-recipes" class="tab-content">
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-bookmark"></i>
+                Сохранённые рецепты
+            </div>
+            <div id="recipes-container" class="recipes-grid">
+                <!-- Рецепты будут загружаться сюда -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Вкладка: Список покупок -->
+    <div id="tab-shopping" class="tab-content">
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-list"></i>
+                Список покупок
+            </div>
+            <div style="margin-bottom: 20px;">
+                <select id="shopping-recipe-select" class="btn-secondary" style="width: 100%; margin-bottom: 10px;">
+                    <option value="">Выберите рецепт...</option>
+                </select>
+                <button class="btn btn-primary" onclick="generateShoppingList()" style="width: 100%;">
+                    <i class="fas fa-plus-circle"></i>
+                    Добавить в список
+                </button>
+            </div>
+            <ul id="shopping-list" class="shopping-list"></ul>
+        </div>
+    </div>
+
+    <!-- Вкладка: Статистика -->
+    <div id="tab-stats" class="tab-content">
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-chart-pie"></i>
+                Статистика
+            </div>
+            <div style="text-align: center; padding: 40px 20px; color: #a0a0a0;">
+                <i class="fas fa-chart-line" style="font-size: 48px; margin-bottom: 20px; color: #ffb347;"></i>
+                <p>Здесь будет отображаться статистика ваших расходов</p>
+                <p style="font-size: 14px; margin-top: 10px;">Сохраняйте рецепты, чтобы увидеть графики</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Переключение вкладок
+    function switchTab(tabName) {
+        // Скрываем все вкладки
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+
+        // Убираем активный класс у всех кнопок
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Показываем выбранную вкладку
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+
+        // Активируем соответствующую кнопку
+        event.target.classList.add('active');
+    }
+
+    // Добавление ингредиента
+    document.getElementById('add-ingredient').addEventListener('click', function() {
+        const container = document.getElementById('ingredients-container');
+        const firstIngredient = document.querySelector('.ingredient-card');
+        const newIngredient = firstIngredient.cloneNode(true);
+
+        // Очищаем значения
+        newIngredient.querySelectorAll('input').forEach(input => input.value = '');
+        newIngredient.querySelector('.cost-display').textContent = '0 ₽';
+
+        // Добавляем обработчик удаления
+        newIngredient.querySelector('.btn-delete').addEventListener('click', function() {
+            newIngredient.remove();
+            updateTotal();
+        });
+
+        container.appendChild(newIngredient);
+    });
+
+    // Обновление итога
+    function updateTotal() {
+        let total = 0;
+        document.querySelectorAll('.ingredient-card').forEach(card => {
+            const boughtQty = parseFloat(card.querySelector('[name="bought_quantity[]"]').value) || 0;
+            const price = parseFloat(card.querySelector('[name="price[]"]').value) || 0;
+            const usedQty = parseFloat(card.querySelector('[name="used_quantity[]"]').value) || 0;
+
+            let cost = 0;
+            if (boughtQty > 0) {
+                cost = (price / boughtQty) * usedQty;
+            }
+
+            card.querySelector('.cost-display').textContent = cost.toFixed(2) + ' ₽';
+            total += cost;
+        });
+
+        document.getElementById('total-cost').textContent = total.toFixed(2) + ' ₽';
+    }
+
+    // Автоматическое обновление при вводе
+    document.addEventListener('input', function(e) {
+        if (e.target.matches('[name="bought_quantity[]"], [name="price[]"], [name="used_quantity[]"]')) {
+            updateTotal();
+        }
+    });
+
+    // Сохранение рецепта
+    function saveRecipe() {
+        const name = document.getElementById('recipe-name').value || 'Мой рецепт';
+        const ingredients = [];
+
+        document.querySelectorAll('.ingredient-card').forEach(card => {
+            const name = card.querySelector('[name="name[]"]').value;
+            if (name) {
+                ingredients.push({
+                    name: name,
+                    bought_quantity: parseFloat(card.querySelector('[name="bought_quantity[]"]').value) || 0,
+                    unit: card.querySelector('[name="unit[]"]').value,
+                    price: parseFloat(card.querySelector('[name="price[]"]').value) || 0,
+                    used_quantity: parseFloat(card.querySelector('[name="used_quantity[]"]').value) || 0
+                });
+            }
+        });
+
+        // Сохраняем в localStorage
+        const recipes = JSON.parse(localStorage.getItem('recipes') || '[]');
+        const newRecipe = {
+            id: Date.now(),
+            name: name,
+            ingredients: ingredients,
+            total_cost: parseFloat(document.getElementById('total-cost').textContent),
+            date: new Date().toLocaleDateString()
+        };
+        recipes.push(newRecipe);
+        localStorage.setItem('recipes', JSON.stringify(recipes));
+
+        alert(`✅ Рецепт "${name}" сохранён!`);
+        loadRecipes();
+    }
+
+    // Загрузка рецептов
+    function loadRecipes() {
+        const recipes = JSON.parse(localStorage.getItem('recipes') || '[]');
+        const container = document.getElementById('recipes-container');
+        const select = document.getElementById('shopping-recipe-select');
+
+        if (recipes.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #a0a0a0; padding: 40px;">У вас пока нет сохранённых рецептов</p>';
+            return;
+        }
+
+        // Отображаем рецепты
+        container.innerHTML = recipes.slice().reverse().map(recipe => `
+                <div class="recipe-item">
+                    <div class="recipe-name">${recipe.name}</div>
+                    <div class="recipe-cost">${recipe.total_cost}</div>
+                    <div class="recipe-meta">
+                        <span><i class="far fa-calendar"></i> ${recipe.date}</span>
+                        <span><i class="fas fa-utensils"></i> ${recipe.ingredients.length} ингр.</span>
+                    </div>
+                </div>
+            `).join('');
+
+        // Заполняем select для списка покупок
+        select.innerHTML = '<option value="">Выберите рецепт...</option>' +
+            recipes.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+    }
+
+    // Генерация списка покупок
+    function generateShoppingList() {
+        const recipeId = document.getElementById('shopping-recipe-select').value;
+        if (!recipeId) {
+            alert('Выберите рецепт');
+            return;
+        }
+
+        const recipes = JSON.parse(localStorage.getItem('recipes') || '[]');
+        const recipe = recipes.find(r => r.id == recipeId);
+
+        if (!recipe) return;
+
+        const list = document.getElementById('shopping-list');
+        list.innerHTML = recipe.ingredients.map(ing => `
+                <li class="shopping-item">
+                    <div style="display: flex; align-items: center;">
+                        <input type="checkbox" onchange="this.closest('li').classList.toggle('checked')">
+                        <span>${ing.name} - ${ing.bought_quantity} ${ing.unit} (${ing.price} ₽)</span>
+                    </div>
+                    <span style="color: #ffb347;">${(ing.price / ing.bought_quantity * ing.used_quantity).toFixed(2)} ₽</span>
+                </li>
+            `).join('');
+    }
+
+    // Загружаем рецепты при старте
+    loadRecipes();
+</script>
+</body>
+</html>
